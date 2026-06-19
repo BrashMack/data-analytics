@@ -1,0 +1,23 @@
+name: Docker check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  docker-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: docker compose build
+      - name: Run ETL
+        run: docker compose run --rm etl
+      - name: Run analytics
+        run: docker compose run --rm analytics
+      - name: Show reports
+        run: ls -lah reports && head -n 5 reports/*.csv
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v

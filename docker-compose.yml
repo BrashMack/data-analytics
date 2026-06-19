@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: analytics
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  etl:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: analytics
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    volumes:
+      - ./reports:/app/reports
+    command: python -m src.run_pipeline
+
+  analytics:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: analytics
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    volumes:
+      - ./reports:/app/reports
+    command: python -m src.run_analytics
+
+volumes:
+  pgdata:
